@@ -12,7 +12,7 @@ pub fn to_meter(rad: f64) -> f64 {
 }
 
 #[cfg(test)]
-mod tests {
+mod distance_tests {
     use super::*;
     use rand::Rng;
     use assert_approx_eq::assert_approx_eq;
