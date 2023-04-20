@@ -3,7 +3,7 @@ mod utils;
 use std::f64;
 use utils::{distance, math};
 
-use crate::utils::math::Math;
+use crate::utils::math::FloatTraitOverload;
 
 fn main() {
     println!("{}", distance::to_rad(1000.));

@@ -3,12 +3,19 @@ use std::{
     ops::RangeInclusive,
 };
 
-pub trait Math {
+pub trait FloatTraitOverload {
+    /// Compute the haversine value `(sin(x/2))^2`
     fn haversin(&self) -> Self;
+
+    /// Linear interpolation of the current value on the range
+    ///
+    /// # Arguments
+    ///
+    /// * `range` - Inclusive range to interpolate on
     fn lerp(&self, range: RangeInclusive<f64>) -> Self;
 }
 
-impl Math for f64 {
+impl FloatTraitOverload for f64 {
     fn haversin(&self) -> Self {
         (*self / 2.).sin().powi(2)
     }
@@ -32,6 +39,37 @@ pub fn bilerp(z00: f64, z10: f64, z01: f64, z11: f64, x: f64, y: f64) -> f64 {
     let x_0_1 = x.lerp(z00..=z10);
     let x_1_2 = x.lerp(z01..=z11);
     y.lerp(x_0_1..=x_1_2)
+}
+
+pub fn first_interval_containing_root(f: fn(f64) -> f64, min_x: f64, max_x: f64, dx: f64) -> f64 {
+    let mut i = min_x;
+
+    while i < max_x {
+        if let Ok(_) = improve_root(f, i, i + dx, 1e-10) {
+            return i;
+        }
+
+        i += dx;
+    }
+
+    f64::INFINITY
+}
+
+pub fn improve_root(f: fn(f64) -> f64, mut x1: f64, mut x2: f64, eps: f64) -> Result<f64, ()> {
+    if f(x1).signum() == f(x2).signum() || x1 > x2 {
+        return Err(());
+    }
+
+    while (x2 - x1) > eps {
+        let m = (x1 + x2) / 2.;
+        if f(m).signum() == f(x1).signum() {
+            x1 = m;
+        } else {
+            x2 = m;
+        }
+    }
+
+    Ok(x1)
 }
 
 #[cfg(test)]
@@ -183,5 +221,31 @@ mod math_tests {
             assert_approx_eq!((v3 + v4) / 2., bilerp(v1, v2, v3, v4, 0.5, 1.), 1e-10);
             assert_approx_eq!((v2 + v4) / 2., bilerp(v1, v2, v3, v4, 1., 0.5), 1e-10);
         }
+    }
+
+    #[test]
+    fn first_interval_containing_root_works_on_sin() {
+        let i1 = first_interval_containing_root(|x| x.sin(), -1., 1., 0.1 + 1e-11);
+        assert_approx_eq!(-0.1, i1, 1e-10);
+
+        let i2 = first_interval_containing_root(|x| x.sin(), 1., 4., 1.);
+        assert_approx_eq!(3., i2, f64::EPSILON);
+    }
+
+    #[test]
+    fn improve_root_fails_when_interval_does_not_contains_root() {
+        match improve_root(|x| x.sin(), 1., 2., 1e-10) {
+            Ok(_) => assert!(false),
+            Err(_) => assert!(true),
+        }
+    }
+
+    #[test]
+    fn improve_root_works_on_sin() {
+        let pi = improve_root(|x| x.sin(), 3.1, 3.2, 1e-10).unwrap();
+        assert_approx_eq!(PI, pi, 1e-10);
+
+        let m_pi = improve_root(|x| x.sin(), -4., -3.1, 1e-10).unwrap();
+        assert_approx_eq!(-PI, m_pi, 1e-10);
     }
 }
