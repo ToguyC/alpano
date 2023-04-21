@@ -3,26 +3,12 @@ use std::{
     ops::RangeInclusive,
 };
 
-pub trait FloatTraitOverload {
-    /// Compute the haversine value `(sin(x/2))^2`
-    fn haversin(&self) -> Self;
-
-    /// Linear interpolation of the current value on the range
-    ///
-    /// # Arguments
-    ///
-    /// * `range` - Inclusive range to interpolate on
-    fn lerp(&self, range: RangeInclusive<f64>) -> Self;
+pub fn haversin(v: f64) -> f64 {
+    (v / 2.).sin().powi(2)
 }
 
-impl FloatTraitOverload for f64 {
-    fn haversin(&self) -> Self {
-        (*self / 2.).sin().powi(2)
-    }
-
-    fn lerp(&self, range: RangeInclusive<f64>) -> Self {
-        *range.start() * (1.0 - *self) + (*range.end() * *self)
-    }
+pub fn lerp(v: f64, range: RangeInclusive<f64>) -> f64 {
+    *range.start() * (1.0 - v) + (*range.end() * v)
 }
 
 pub fn angular_distance(a1: f64, a2: f64) -> f64 {
@@ -36,9 +22,9 @@ pub fn angular_distance(a1: f64, a2: f64) -> f64 {
 }
 
 pub fn bilerp(z00: f64, z10: f64, z01: f64, z11: f64, x: f64, y: f64) -> f64 {
-    let x_0_1 = x.lerp(z00..=z10);
-    let x_1_2 = x.lerp(z01..=z11);
-    y.lerp(x_0_1..=x_1_2)
+    let x_0_1 = lerp(x, z00..=z10);
+    let x_1_2 = lerp(x, z01..=z11);
+    lerp(y, x_0_1..=x_1_2)
 }
 
 pub fn first_interval_containing_root(f: fn(f64) -> f64, min_x: f64, max_x: f64, dx: f64) -> f64 {
@@ -90,7 +76,7 @@ mod math_tests {
         for _ in 0..500 {
             let a = next_angle(&mut rng);
             let h = (1. - a.cos()) / 2.;
-            assert_approx_eq!(h, a.haversin(), 1e-10);
+            assert_approx_eq!(h, haversin(a), 1e-10);
         }
     }
 
@@ -142,7 +128,7 @@ mod math_tests {
         for _ in 0..500 {
             let v1 = (rng.gen::<f64>() - 0.5) * 1000.;
             let v2 = (rng.gen::<f64>() - 0.5) * 1000.;
-            assert_approx_eq!(v1, 0.0.lerp(v1..=v2), 1e-10);
+            assert_approx_eq!(v1, lerp(0., v1..=v2), 1e-10);
         }
     }
 
@@ -152,7 +138,7 @@ mod math_tests {
         for _ in 0..500 {
             let v1 = (rng.gen::<f64>() - 0.5) * 1000.;
             let v2 = (rng.gen::<f64>() - 0.5) * 1000.;
-            assert_approx_eq!((v1 + v2) / 2., 0.5.lerp(v1..=v2), 1e-10);
+            assert_approx_eq!((v1 + v2) / 2., lerp(0.5, v1..=v2), 1e-10);
         }
     }
 
@@ -162,7 +148,7 @@ mod math_tests {
         for _ in 0..500 {
             let v1 = (rng.gen::<f64>() - 0.5) * 1000.;
             let v2 = (rng.gen::<f64>() - 0.5) * 1000.;
-            assert_approx_eq!(v2, 1.0.lerp(v1..=v2), 1e-10);
+            assert_approx_eq!(v2, lerp(1.0, v1..=v2), 1e-10);
         }
     }
 
@@ -173,7 +159,7 @@ mod math_tests {
             let v1 = (rng.gen::<f64>() - 0.5) * 1000.;
             let v2 = (rng.gen::<f64>() - 0.5) * 1000.;
             let p = rng.gen::<f64>();
-            let v = p.lerp(v1..=v2);
+            let v = lerp(p, v1..=v2);
             assert!(v1.min(v2) <= v && v <= v1.max(v2));
         }
     }
